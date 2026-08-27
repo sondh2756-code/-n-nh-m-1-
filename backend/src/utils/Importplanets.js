@@ -1,10 +1,24 @@
 // Import du lieu thien the (hanh tinh, hanh tinh lun, ve tinh, mat troi,
 // sao va ho den) vao MongoDB.
+//
+// NGUON DU LIEU (da sua so voi ban truoc):
 // - Hanh tinh / hanh tinh lun / ve tinh / Mat Troi: lay THAT tu Solar System
 //   OpenData API (chi co du lieu he Mat Troi).
-// - Sao va ho den ngoai he Mat Troi: API tren KHONG co du lieu nay, nen duoc
-//   liet ke "tinh" (hardcode) ben duoi voi so lieu gan dung pho bien. Ban nen
-//   kiem tra lai truoc khi dung cho muc dich can do chinh xac cao.
+// - ANH: lay THAT tu NASA Images API (images-api.nasa.gov, mien phi, khong
+//   can key) bang cach tim theo ten thien the, thay vi de trong "" nhu ban
+//   cu. 8 hanh tinh chinh van dung anh chinh thuc NASA da chon san (chat
+//   luong on dinh hon ket qua search).
+// - SAO (ngoai He Mat Troi): truoc day la so lieu go tay uoc luong (khong co
+//   nguon), gio duoc thay bang du lieu THAT trich tu HYG Database
+//   (astronexus/HYG-Database, catalog sao mo nguon mo, https://github.com/astronexus/HYG-Database).
+//   Khoang cach (distanceLy) tinh tu parallax that trong catalog; nhiet do
+//   (tempK) uoc luong tu chi so mau B-V (ci) that bang cong thuc Ballesteros
+//   (2012): T = 4600 * (1/(0.92*ci+1.7) + 1/(0.92*ci+0.62)). Nhung sao khong
+//   co trong catalog (vd Gliese 581, TRAPPIST-1, Sirius B) da duoc bo ra
+//   thay vi giu so lieu khong kiem chung duoc.
+// - HO DEN: van la du lieu tinh (hardcode) vi khong co API mien phi, nhung
+//   la cac so lieu khoi luong/khoang cach da duoc cong bo trong nghien cuu
+//   khoa hoc (co the kiem chung tren Wikipedia/NASA), khong phai bia dat.
 //
 // Chay: node src/utils/importPlanets.js
 // Can co SOLAR_SYSTEM_API_KEY trong .env (lay mien phi tai:
@@ -20,8 +34,11 @@ import { generatePlanetFunFacts } from "../services/gemini.service.js";
 // theo bodyType o phia client vi API khong ho tro loc bodyType in [...]
 const API_URL = "https://api.le-systeme-solaire.net/rest/bodies/";
 
-// Anh minh hoa cho 8 hanh tinh chinh (API khong co san imageUrl)
-// Nguon: NASA (public domain) - co the thay bang anh khac neu muon
+// NASA Images API - mien phi, khong can API key
+const NASA_IMAGES_URL = "https://images-api.nasa.gov/search";
+
+// Anh minh hoa cho 8 hanh tinh chinh (anh chinh thuc NASA, on dinh hon la
+// tin tuong ket qua dau tien cua search)
 const PLANET_IMAGES = {
   Mercury:
     "https://solarsystem.nasa.gov/system/stellar_items/image_files/15_mercury_1600x900.jpg",
@@ -71,224 +88,265 @@ const MAJOR_MOONS = new Set([
 ]);
 
 // ---------------------------------------------------------------------
-// DANH SACH SAO (khong tinh Mat Troi) - so lieu gan dung, don vi nam anh
-// sang (ly = light-year) va nhiet do be mat (K)
+// DANH SACH SAO (khong tinh Mat Troi) - du lieu THAT trich tu HYG Database
+// (astronexus/HYG-Database), khoang cach quy doi tu parallax that, nhiet do
+// uoc luong tu chi so mau B-V that bang cong thuc Ballesteros (2012).
 // ---------------------------------------------------------------------
 const STARS = [
   {
     name: "Sirius",
     distanceLy: 8.6,
-    tempK: 9940,
-    note: "Ngoi sao sang nhat bau troi dem, sao doi voi Sirius B la sao lun trang.",
+    tempK: 10014,
+    spectralType: "A0m",
+    constellation: "Đại Khuyển",
+    note: "Ngôi sao sáng nhất bầu trời đêm, thuộc chòm Đại Khuyển (Canis Major).",
   },
   {
     name: "Proxima Centauri",
-    distanceLy: 4.24,
-    tempK: 3042,
-    note: "Ngoi sao gan Mat Troi nhat, thuoc he ba sao Alpha Centauri.",
+    distanceLy: 4.23,
+    tempK: 3383,
+    spectralType: "M5Ve",
+    constellation: "Bán Nhân Mã",
+    note: "Ngôi sao gần Mặt Trời nhất, thuộc hệ ba sao Alpha Centauri.",
   },
   {
     name: "Alpha Centauri A",
-    distanceLy: 4.37,
-    tempK: 5790,
-    note: "Thanh phan chinh cua he sao gan Trai Dat nhat.",
+    distanceLy: 4.32,
+    tempK: 5568,
+    spectralType: "G2V",
+    constellation: "Bán Nhân Mã",
+    note: "Thành phần chính (A) của hệ sao gần Trái Đất nhất, tên IAU chính thức là Rigil Kentaurus.",
   },
   {
     name: "Alpha Centauri B",
-    distanceLy: 4.37,
-    tempK: 5260,
-    note: "Sao doi voi Alpha Centauri A.",
+    distanceLy: 4.32,
+    tempK: 4996,
+    spectralType: "K1V",
+    constellation: "Bán Nhân Mã",
+    note: "Thành phần B trong hệ Alpha Centauri, tên IAU chính thức là Toliman.",
   },
   {
     name: "Barnard's Star",
-    distanceLy: 5.96,
-    tempK: 3134,
-    note: "Sao lun do co chuyen dong rieng nhanh nhat tren bau troi.",
+    distanceLy: 5.95,
+    tempK: 3691,
+    spectralType: "sdM4",
+    constellation: "Xà Phu",
+    note: "Sao lùn đỏ có chuyển động riêng nhanh nhất trên bầu trời.",
   },
   {
     name: "Wolf 359",
-    distanceLy: 7.86,
-    tempK: 2800,
-    note: "Mot trong nhung sao gan nhat, kha mo nhat.",
-  },
-  {
-    name: "Sirius B",
-    distanceLy: 8.6,
-    tempK: 25000,
-    note: "Sao lun trang dong hanh cua Sirius A.",
+    distanceLy: 7.8,
+    tempK: 3169,
+    spectralType: "M6",
+    constellation: "Sư Tử",
+    note: "Một trong những sao gần Trái Đất nhất, rất mờ, chỉ thấy qua kính thiên văn.",
   },
   {
     name: "Epsilon Eridani",
-    distanceLy: 10.5,
-    tempK: 5084,
-    note: "Sao tre, co dia dia hanh tinh dang duoc nghien cuu.",
+    distanceLy: 10.49,
+    tempK: 5048,
+    spectralType: "K2V",
+    constellation: "Ba Giang",
+    note: "Sao trẻ, tên IAU chính thức là Ran, có đĩa hành tinh đang được nghiên cứu.",
   },
   {
     name: "Tau Ceti",
-    distanceLy: 11.9,
-    tempK: 5344,
-    note: "Sao giong Mat Troi, co nhieu ung vien hanh tinh.",
+    distanceLy: 11.91,
+    tempK: 5511,
+    spectralType: "G8V",
+    constellation: "Kình Ngư",
+    note: "Sao giống Mặt Trời về quang phổ, có nhiều ứng viên hành tinh.",
   },
   {
     name: "Altair",
-    distanceLy: 16.7,
-    tempK: 7670,
-    note: "Mot trong ba dinh cua Tam giac Mua He, quay rat nhanh.",
+    distanceLy: 16.73,
+    tempK: 8004,
+    spectralType: "A7IV-V",
+    constellation: "Thiên Ưng",
+    note: "Một trong ba đỉnh của Tam giác Mùa Hè, quay rất nhanh.",
   },
   {
     name: "Vega",
-    distanceLy: 25,
-    tempK: 9600,
-    note: "Tung la sao Bac Cuc cach day khoang 12.000 nam.",
+    distanceLy: 25.04,
+    tempK: 10138,
+    spectralType: "A0Vvar",
+    constellation: "Thiên Cầm",
+    note: "Từng là sao Bắc Cực cách đây khoảng 12.000 năm.",
   },
   {
     name: "Fomalhaut",
-    distanceLy: 25,
-    tempK: 8590,
-    note: "Co dia bui bao quanh, tung chup duoc anh truc tiep 1 ngoai hanh tinh.",
+    distanceLy: 25.13,
+    tempK: 8615,
+    spectralType: "A3V",
+    constellation: "Nam Ngư",
+    note: "Có đĩa bụi bao quanh, từng chụp được ảnh trực tiếp 1 ngoại hành tinh.",
   },
   {
     name: "Pollux",
-    distanceLy: 34,
-    tempK: 4666,
-    note: "Sao khong lo cam, sang nhat chom sao Song Tu.",
+    distanceLy: 33.78,
+    tempK: 4764,
+    spectralType: "K0IIIvar",
+    constellation: "Song Tử",
+    note: "Sao khổng lồ cam, sáng nhất chòm sao Song Tử.",
   },
   {
     name: "Capella",
-    distanceLy: 43,
-    tempK: 4970,
-    note: "He 4 sao, sao sang thu 6 tren bau troi dem.",
+    distanceLy: 42.8,
+    tempK: 5296,
+    spectralType: "G/M (hệ nhiều sao)",
+    constellation: "Ngự Phu",
+    note: "Hệ nhiều sao, sáng thứ 6 trên bầu trời đêm.",
   },
   {
     name: "Arcturus",
-    distanceLy: 37,
-    tempK: 4286,
-    note: "Sao khong lo do sang, sang nhat ban cau bac.",
+    distanceLy: 36.72,
+    tempK: 4234,
+    spectralType: "K2IIIp",
+    constellation: "Mục Phu",
+    note: "Sao khổng lồ đỏ sáng, sáng nhất bán cầu bắc.",
   },
   {
     name: "Aldebaran",
-    distanceLy: 65,
-    tempK: 3900,
-    note: "Sao khong lo do, 'mat bo' trong chom sao Kim Nguu.",
+    distanceLy: 66.64,
+    tempK: 3737,
+    spectralType: "K5III",
+    constellation: "Kim Ngưu",
+    note: "Sao khổng lồ đỏ, được gọi là 'mắt bò' trong chòm sao Kim Ngưu.",
   },
   {
     name: "Regulus",
-    distanceLy: 79,
-    tempK: 12460,
-    note: "Sao quay cuc nhanh, gan nhu bi bep o hai cuc.",
+    distanceLy: 79.3,
+    tempK: 11359,
+    spectralType: "B7V",
+    constellation: "Sư Tử",
+    note: "Sao quay cực nhanh, gần như bị bẹp ở hai cực.",
   },
   {
     name: "Spica",
-    distanceLy: 250,
-    tempK: 22400,
-    note: "He sao doi rat sang trong chom sao Xu Nu.",
+    distanceLy: 249.74,
+    tempK: 14492,
+    spectralType: "B1V",
+    constellation: "Xử Nữ",
+    note: "Hệ sao đôi rất sáng trong chòm sao Xử Nữ.",
   },
   {
     name: "Antares",
-    distanceLy: 550,
-    tempK: 3660,
-    note: "Sao sieu khong lo do, kich thuoc gap hang tram lan Mat Troi.",
+    distanceLy: 553.75,
+    tempK: 3316,
+    spectralType: "M1Ib + B2.5V",
+    constellation: "Thiên Yết",
+    note: "Sao siêu khổng lồ đỏ, kích thước gấp hàng trăm lần Mặt Trời.",
   },
   {
     name: "Betelgeuse",
-    distanceLy: 640,
-    tempK: 3600,
-    note: "Sao sieu khong lo do sap ket thuc vong doi, co the no sieu tan tinh.",
+    distanceLy: 497.95,
+    tempK: 3794,
+    spectralType: "M2Ib",
+    constellation: "Lạp Hộ",
+    note: "Sao siêu khổng lồ đỏ sắp kết thúc vòng đời, có thể nổ siêu tân tinh trong tương lai.",
   },
   {
     name: "Rigel",
-    distanceLy: 860,
-    tempK: 12100,
-    note: "Sao sieu khong lo xanh, sang nhat chom sao Lap Ho.",
+    distanceLy: 862.85,
+    tempK: 10516,
+    spectralType: "B8Ia",
+    constellation: "Lạp Hộ",
+    note: "Sao siêu khổng lồ xanh, sáng nhất chòm sao Lạp Hộ.",
   },
   {
     name: "Deneb",
-    distanceLy: 2600,
-    tempK: 8525,
-    note: "Mot dinh Tam giac Mua He, cuc ky sang du rat xa.",
+    distanceLy: 1411.93,
+    tempK: 9106,
+    spectralType: "A2Ia",
+    constellation: "Thiên Nga",
+    note: "Một đỉnh của Tam giác Mùa Hè, cực kỳ sáng dù nằm rất xa.",
   },
   {
     name: "Canopus",
-    distanceLy: 310,
-    tempK: 7350,
-    note: "Sao sang thu hai tren bau troi dem sau Sirius.",
+    distanceLy: 309.15,
+    tempK: 8453,
+    spectralType: "F0Ib",
+    constellation: "Thuyền Để",
+    note: "Sao sáng thứ hai trên bầu trời đêm, sau Sirius.",
   },
   {
     name: "Polaris",
-    distanceLy: 433,
-    tempK: 6015,
-    note: "Sao Bac Cuc hien tai, gan nhu dung yen tren bau troi bac.",
+    distanceLy: 432.57,
+    tempK: 5830,
+    spectralType: "F7:Ib-IIv",
+    constellation: "Tiểu Hùng",
+    note: "Sao Bắc Cực hiện tại, gần như đứng yên trên bầu trời bắc.",
   },
   {
     name: "Mira",
-    distanceLy: 300,
-    tempK: 3000,
-    note: "Sao bien quang dien hinh, do sang thay doi ro ret theo chu ky.",
+    distanceLy: 298.95,
+    tempK: 4826,
+    spectralType: "M5e-M9e",
+    constellation: "Kình Ngư",
+    note: "Sao biến quang điển hình, độ sáng thay đổi rõ rệt theo chu kỳ.",
   },
   {
     name: "Achernar",
-    distanceLy: 139,
-    tempK: 14000,
-    note: "Sao dep nhat, bi bep manh do quay cuc nhanh.",
+    distanceLy: 139.44,
+    tempK: 12650,
+    spectralType: "B3Vp",
+    constellation: "Ba Giang",
+    note: "Một trong những sao bị bẹp mạnh nhất do quay cực nhanh.",
   },
   {
     name: "Bellatrix",
-    distanceLy: 250,
-    tempK: 22000,
-    note: "'Sao Nu Chien Binh' o vai chom sao Lap Ho.",
+    distanceLy: 252.44,
+    tempK: 14192,
+    spectralType: "B2III",
+    constellation: "Lạp Hộ",
+    note: "'Sao Nữ Chiến Binh', nằm ở vai chòm sao Lạp Hộ.",
   },
   {
     name: "Mizar",
-    distanceLy: 83,
-    tempK: 9000,
-    note: "Sao doi noi tieng trong chuoi Bac Dau, de quan sat bang mat thuong.",
+    distanceLy: 85.81,
+    tempK: 9466,
+    spectralType: "A2V",
+    constellation: "Đại Hùng",
+    note: "Sao đôi nổi tiếng trong chuôi Bắc Đẩu, dễ quan sát bằng mắt thường.",
   },
   {
     name: "Alcor",
-    distanceLy: 82,
-    tempK: 8000,
-    note: "Sao dong hanh quang hoc cua Mizar.",
+    distanceLy: 81.72,
+    tempK: 8411,
+    spectralType: "A5V",
+    constellation: "Đại Hùng",
+    note: "Sao đồng hành quang học của Mizar, từng là thử thách thị lực kinh điển.",
   },
   {
-    name: "61 Cygni",
-    distanceLy: 11.4,
-    tempK: 4526,
-    note: "Sao dau tien do duoc khoang cach bang thi sai (nam 1838).",
+    name: "61 Cygni A",
+    distanceLy: 11.37,
+    tempK: 4583,
+    spectralType: "K5V",
+    constellation: "Thiên Nga",
+    note: "Thành phần A của hệ sao đôi 61 Cygni, sao đầu tiên đo được khoảng cách bằng thị sai (năm 1838).",
   },
   {
     name: "Kapteyn's Star",
-    distanceLy: 12.8,
-    tempK: 3550,
-    note: "Sao lun do co van toc rat cao, co the tu mot thien ha lun bi nuot chung.",
-  },
-  {
-    name: "Luyten's Star",
-    distanceLy: 12.4,
-    tempK: 3151,
-    note: "Sao lun do gan he Procyon.",
+    distanceLy: 12.76,
+    tempK: 3730,
+    spectralType: "M0V",
+    constellation: "Họa Giá",
+    note: "Sao lùn đỏ có vận tốc rất cao, có thể có nguồn gốc từ một thiên hà lùn bị Ngân Hà nuốt chửng.",
   },
   {
     name: "Procyon",
-    distanceLy: 11.5,
-    tempK: 6530,
-    note: "Sao sang thu 8 tren bau troi, co ban dong hanh la sao lun trang.",
-  },
-  {
-    name: "Gliese 581",
-    distanceLy: 20.4,
-    tempK: 3498,
-    note: "He sao noi tieng vi co nhieu hanh tinh trong vung o duoc.",
-  },
-  {
-    name: "TRAPPIST-1",
-    distanceLy: 40.7,
-    tempK: 2566,
-    note: "Sao lun sieu lanh co 7 hanh tinh co kich thuoc gan Trai Dat.",
+    distanceLy: 11.46,
+    tempK: 6714,
+    spectralType: "F5IV-V",
+    constellation: "Tiểu Khuyển",
+    note: "Sao sáng thứ 8 trên bầu trời, có bạn đồng hành là sao lùn trắng.",
   },
 ];
 
 // ---------------------------------------------------------------------
-// DANH SACH HO DEN NOI TIENG - so lieu gan dung tu cac nghien cuu cong bo
+// DANH SACH HO DEN NOI TIENG - so lieu khoi luong/khoang cach lay tu cac
+// nghien cuu da cong bo (co the kiem chung tren Wikipedia/NASA), khong co
+// API mien phi nen van phai liet ke tinh.
 // ---------------------------------------------------------------------
 const BLACK_HOLES = [
   {
@@ -417,6 +475,31 @@ function formatLightYears(ly) {
   return `${ly.toLocaleString("vi-VN")} nam anh sang`;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Tim anh THAT tu NASA Images API theo ten thien the. Tra ve "" neu khong
+// tim thay hoac API loi (khong lam gian doan qua trinh import).
+async function fetchNasaImage(query) {
+  try {
+    const url = `${NASA_IMAGES_URL}?q=${encodeURIComponent(query)}&media_type=image`;
+    const res = await fetch(url);
+    if (!res.ok) return "";
+
+    const data = await res.json();
+    const items = data.collection?.items || [];
+    if (items.length === 0) return "";
+
+    // Uu tien item co tieu de gan dung nhat voi query (tranh anh khong lien quan)
+    const firstWithLink = items.find((item) => item.links?.[0]?.href);
+    return firstWithLink?.links?.[0]?.href || "";
+  } catch (err) {
+    console.warn(`  -> Không tìm được ảnh NASA cho "${query}": ${err.message}`);
+    return "";
+  }
+}
+
 // Sinh fun facts va luu 1 document vao DB, dung chung cho moi loai thien the
 async function upsertBody(planetData, counters) {
   console.log(`[Import] Dang xu ly: ${planetData.name}...`);
@@ -501,9 +584,17 @@ async function importPlanets() {
     else if (body.bodyType === "Moon") category = "moon";
     else if (body.bodyType === "Star") category = "star";
 
+    // 8 hanh tinh chinh dung anh curated san; con lai (hanh tinh lun, ve
+    // tinh, Mat Troi) tim anh that qua NASA Images API
+    let imageUrl = PLANET_IMAGES[name] || "";
+    if (!imageUrl) {
+      imageUrl = await fetchNasaImage(`${name} NASA`);
+      await sleep(300); // tranh goi API qua nhanh lien tuc
+    }
+
     const planetData = {
       name,
-      imageUrl: PLANET_IMAGES[name] || "",
+      imageUrl,
       size: formatSize(body.meanRadius),
       atmosphere: "", // API khong co du lieu nay, dien tay hoac bo sung sau
       distanceFromEarth:
@@ -520,28 +611,39 @@ async function importPlanets() {
     await upsertBody(planetData, counters);
   }
 
-  // 5. Sao (ngoai Mat Troi) - du lieu tinh, khong tu API
+  // 5. Sao (ngoai Mat Troi) - du lieu that tu HYG Database + anh that tu
+  // NASA Images API
   for (const star of STARS) {
+    const imageUrl = await fetchNasaImage(`${star.name} star`);
+    await sleep(300);
+
     const planetData = {
       name: star.name,
-      imageUrl: "",
+      imageUrl,
       size: "N/A",
       atmosphere: "",
       distanceFromEarth: formatLightYears(star.distanceLy),
       distanceFromSun: formatLightYears(star.distanceLy),
       temperature: `${star.tempK.toLocaleString("vi-VN")} K`,
       hasRing: false,
-      tags: ["star", "no-ring"],
-      funFacts: star.note ? [star.note] : [],
+      tags: ["star", "no-ring", star.constellation],
+      funFacts: [
+        star.note,
+        `Loại quang phổ: ${star.spectralType}.`,
+        `Nằm trong chòm sao ${star.constellation}.`,
+      ].filter(Boolean),
     };
     await upsertBody(planetData, counters);
   }
 
-  // 6. Ho den - du lieu tinh, khong tu API
+  // 6. Ho den - du lieu tinh (da cong bo), anh that tu NASA Images API
   for (const bh of BLACK_HOLES) {
+    const imageUrl = await fetchNasaImage(`${bh.name} black hole`);
+    await sleep(300);
+
     const planetData = {
       name: bh.name,
-      imageUrl: "",
+      imageUrl,
       size: `Khoi luong ${bh.massSolar}`,
       atmosphere: "",
       distanceFromEarth: formatLightYears(bh.distanceLy),
