@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+:root {
+  --background: 24 18 17;
+  --surface: 24 18 17;
+  --surface-container: 36 30 29;
+  --surface-container-low: 32 26 25;
+  --surface-container-lowest: 18 13 12;
+  --surface-container-high: 47 40 39;
+  --surface-container-highest: 58 51 50;
+  --surface-variant: 58 51 50;
+  --surface-bright: 63 56 54;
+  --surface-dim: 24 18 17;
+  --primary: 252 61 33;
+  --primary-container: 255 180 166;
+  --on-primary: 255 255 255;
+  --on-primary-container: 255 255 255;
+  --on-surface: 236 224 222;
+  --on-background: 236 224 222;
+  --on-surface-variant: 215 194 190;
+  --secondary: 177 177 177;
+  --secondary-container: 49 49 49;
+  --on-secondary: 24 24 24;
+  --on-secondary-container: 215 194 190;
+  --tertiary: 204 229 255;
+  --tertiary-container: 147 204 255;
+  --on-tertiary: 255 255 255;
+  --on-tertiary-container: 255 255 255;
+  --outline: 159 140 137;
+  --outline-variant: 82 67 65;
+  --error: 235 75 60;
+  --error-container: 125 28 22;
+  --on-error: 255 255 255;
+  --on-error-container: 255 235 235;
+  --inverse-on-surface: 20 20 20;
+  --inverse-surface: 245 245 245;
+  --inverse-primary: 227 59 40;
+  --surface-tint: 252 61 33;
+  --primary-fixed: 255 220 220;
+  --primary-fixed-dim: 255 170 175;
+  --secondary-fixed: 245 245 245;
+  --secondary-fixed-dim: 200 200 200;
+  --tertiary-fixed: 255 220 220;
+  --tertiary-fixed-dim: 255 170 175;
+  --on-primary-fixed: 60 0 0;
+  --on-primary-fixed-variant: 110 10 15;
+  --on-secondary-fixed: 20 20 20;
+  --on-secondary-fixed-variant: 65 65 65;
+  --on-tertiary-fixed: 60 0 0;
+  --on-tertiary-fixed-variant: 110 10 15;
+}
+
+.light {
+  --background: 245 245 245;
+  --surface: 255 255 255;
+  --surface-container: 255 255 255;
+  --surface-container-low: 250 250 250;
+  --surface-container-lowest: 255 255 255;
+  --surface-container-high: 238 238 238;
+  --surface-container-highest: 222 222 222;
+  --surface-variant: 210 210 210;
+  --surface-bright: 255 255 255;
+  --surface-dim: 225 225 225;
+  --primary: 185 20 30;
+  --primary-container: 220 45 55;
+  --on-primary: 255 255 255;
+  --on-primary-container: 255 255 255;
+  --on-surface: 15 15 15;
+  --on-background: 15 15 15;
+  --on-surface-variant: 65 65 65;
+  --secondary: 30 30 30;
+  --secondary-container: 120 120 120;
+  --on-secondary: 255 255 255;
+  --on-secondary-container: 30 30 30;
+  --tertiary: 185 20 30;
+  --tertiary-container: 220 45 55;
+  --on-tertiary: 255 255 255;
+  --on-tertiary-container: 255 255 255;
+  --outline: 105 105 105;
+  --outline-variant: 175 175 175;
+  --error: 180 15 25;
+  --error-container: 245 210 210;
+  --on-error: 255 255 255;
+  --on-error-container: 90 0 0;
+  --inverse-on-surface: 245 245 245;
+  --inverse-surface: 30 30 30;
+  --inverse-primary: 255 150 155;
+  --surface-tint: 185 20 30;
+}
+
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--on-background));
+  background-image: none;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+html.light body {
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--background)) 0%,
+    rgb(var(--surface)) 100%
+  );
+}
+
+html.light .glass-panel,
+html.light .glass-card,
+html.light .luminous-card {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+html.light .glass-panel:hover,
+html.light .glass-card:hover,
+html.light .luminous-card:hover {
+  border-color: rgba(var(--primary), 0.55);
+  box-shadow: 0 4px 16px rgba(var(--primary), 0.12);
+}
+
+html.light .btn-gradient,
+html.light .btn-glow,
+html.light .btn-luminous,
+html.light .luminescent-button {
+  background: rgb(var(--primary));
+  color: rgb(var(--on-primary));
+}
+
+html.light .chip:not(.active) {
+  color: rgb(var(--on-surface-variant));
+  background-color: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+html.light .chip.active {
+  color: rgb(var(--on-primary));
+  background-color: rgb(var(--primary));
+}
+
+/* ==== Glass panel / card (dung chung cho hau het cac khoi noi dung) ==== */
+.glass-panel,
+.glass-card,
+.luminous-card {
+  background-color: rgba(var(--surface-container), 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.glass-panel:hover,
+.glass-card:hover,
+.luminous-card:hover {
+  border-color: rgba(var(--primary), 0.65);
+  box-shadow: 0 0 16px rgba(var(--primary), 0.08);
+}
+
+.glow-text {
+  text-shadow: 0 0 8px rgba(var(--primary), 0.35);
+}
+
+/* ==== Input field (dang gach chan, sang khi focus) ==== */
+.luminous-input,
+.glass-input {
+  background-color: rgb(var(--surface-container-lowest));
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: theme("colors.on-surface");
+  transition: all 0.3s ease;
+}
+
+.luminous-input:focus,
+.glass-input:focus {
+  border-bottom-color: rgb(var(--primary));
+  box-shadow: 0 4px 12px rgba(var(--primary), 0.2);
+  outline: none;
+}
+
+/* ==== Nut bam chinh (gradient sang) ==== */
+.btn-gradient,
+.btn-glow,
+.btn-luminous {
+  background: rgb(var(--primary));
+  box-shadow: 0 0 12px rgba(var(--primary), 0.2);
+  color: rgb(var(--on-primary));
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover,
+.btn-glow:hover,
+.btn-luminous:hover {
+  box-shadow: 0 0 18px rgba(var(--primary), 0.35);
+  transform: translateY(-2px);
+}
+
+.luminescent-button {
+  background: rgb(var(--primary));
+  box-shadow: 0 0 12px rgba(var(--primary), 0.25);
+  border: none;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.luminescent-button:hover {
+  box-shadow: 0 0 25px rgba(var(--primary), 0.6);
+  transform: scale(1.02);
+}
+
+/* ==== Chip / tag toggle ==== */
+.chip {
+  background-color: rgba(var(--primary), 0.1);
+  border: 1px solid rgba(var(--primary), 0.2);
+  transition: all 0.2s ease;
+}
+
+.chip:hover,
+.chip.active {
+  background-color: rgba(var(--primary), 0.2);
+  border-color: theme("colors.primary");
+  box-shadow: 0 0 10px rgba(var(--primary), 0.2);
+}
+
+.chip.active {
+  background-color: rgb(var(--primary));
+  color: rgb(var(--on-primary));
+  border-color: rgb(var(--primary));
+  box-shadow: 0 0 12px rgba(var(--primary), 0.25);
+}
+
+/* ==== Hieu ung nen sao lap lanh (dung cho vai trang) ==== */
+.star-field,
+.stars,
+.starfield {
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 50px 160px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1.5px 1.5px at 90px 40px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1.5px 1.5px at 130px 80px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* ==== Thanh cuon tuy chinh ==== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: theme("colors.surface-container-lowest");
+}
+::-webkit-scrollbar-thumb {
+  background: theme("colors.surface-variant");
+  border-radius: theme("borderRadius.full");
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme("colors.outline");
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ==== Progress ring (dung cho Sky Score / Confidence) ==== */
+.progress-ring__circle {
+  transition: stroke-dashoffset 0.35s;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0;
+}
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1;
+}
